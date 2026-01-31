@@ -209,7 +209,7 @@ int main(void)
 
   // Initialize system state
    systemState.currentMode = POWERMODE_NORMAL;
-   systemState.modeStartTime = HAL_GetTick();
+   //systemState.modeStartTime = HAL_GetTick();
 
       // Configure Power Manager
    static SubsystemConfig_t subsystems[] = {
@@ -268,66 +268,15 @@ int main(void)
    powerConfig.resumeAllTasks = TaskManager_ResumeAllTasks;
    powerConfig.manageSubsystemTasks = TaskManager_ManageSubsystemTasks;
 
-   TaskManager_Init();
-
-      if (PowerManager_Init(&powerConfig) != POWER_OK) {
-          DebugPrint("ERROR: Power Manager initialization failed\r\n");
-          Error_Handler();
-      }
-
-      // Set callbacks
-      PowerManager_SetHealthCheckCallback(SystemHealthCheck);
-      PowerManager_EnableRaceToSleep(true);
-
-      // Handle wakeup from STANDBY mode
-      PowerResult_t wakeupResult = PowerManager_HandleWakeup();
-      if (wakeupResult != POWER_OK) {
-          DebugPrint("WARNING: Wakeup handling returned error: %d\r\n", wakeupResult);
-      }
-
-      // Initialize sensors
-      if (OPT4048_Init(&opt, &hi2c1) != 0) {
-          DebugPrint("ERROR: LUX sensor initialization failed\r\n");
-          Error_Handler();
-      }
-
       if (TMP117_Initialization(&tmp, &hi2c1) != 0) {
           DebugPrint("ERROR: Temperature sensor initialization failed\r\n");
           Error_Handler();
       }
 
-      DebugPrint("System initialized successfully\r\n");
-
-      if (xTaskCreate(SensorTask, "Sensor", STACK_SIZE_MEDIUM, NULL,
-                         PRIORITY_HIGH, &sensorTaskHandle) != pdPASS) {
-              Error_Handler();
-          }
-
-       if (xTaskCreate(SystemControlTask, "SysCtrl", STACK_SIZE_MEDIUM, NULL,
-                         PRIORITY_CRITICAL, &systemControlTaskHandle) != pdPASS) {
-              Error_Handler();
-          }
-
-       if (xTaskCreate(DebugTask, "Debug", STACK_SIZE_SMALL, NULL,
-                         PRIORITY_LOW, &debugTaskHandle) != pdPASS) {
-              Error_Handler();
-          }
-
-          // Register tasks with Task Manager
-       TaskManager_Register(sensorTaskHandle, "Sensor", PRIORITY_HIGH,
-                              TASK_TYPE_CRITICAL, SUBSYSTEM_I2C_LUX);
-       TaskManager_Register(systemControlTaskHandle, "SysCtrl", PRIORITY_CRITICAL,
-                              TASK_TYPE_CRITICAL, SUBSYSTEM_COUNT);
-       TaskManager_Register(debugTaskHandle, "Debug", PRIORITY_LOW,
-                              TASK_TYPE_SUBSYSTEM, SUBSYSTEM_UART_DEBUG);
-
-       DebugPrint("Starting FreeRTOS scheduler\r\n");
-       PrintSystemStatus();
-
   /* USER CODE END 2 */
 
   /* Init scheduler */
-  osKernelInitialize();
+  //osKernelInitialize();
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* USER CODE END RTOS_MUTEX */
@@ -346,13 +295,6 @@ int main(void)
 
   /* Create the thread(s) */
   /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
-
-  /* creation of OPT4048_Init */
-  OPT4048_InitHandle = osThreadNew(opt4048_init, NULL, &OPT4048_Init_attributes);
-
-  /* creation of FaultManagerTas */
-  FaultManagerTasHandle = osThreadNew(FaultManager, NULL, &FaultManagerTas_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -363,7 +305,7 @@ int main(void)
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
-  osKernelStart();
+  //osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
 
@@ -372,6 +314,9 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+	TMP117_GetTemperatureData(&tmp);
+
+	uint16_t tmp_num = tmp.temp_Celcius;
 
     /* USER CODE BEGIN 3 */
   }
@@ -397,12 +342,6 @@ static void SensorTask(void *pvParameters)
         }
 
         // Read temperature sensor
-        if (TMP117_GetTemperatureData(&tmp) == 0) {
-            systemState.currentTemp = tmp.temp_Celcius;
-            systemState.tempCritical = (systemState.currentTemp > TEMP_CRITICAL_THRESHOLD);
-        } else {
-            DebugPrint("ERROR: Failed to read temperature sensor\r\n");
-        }
 
         vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(SENSOR_READ_INTERVAL_MS));
     }
@@ -498,11 +437,6 @@ static PowerResult_t SystemHealthCheck(void)
     // Check if critical sensors are responding
     if (OPT4048_GetCIE(&opt) != 0) {
         DebugPrint("Health Check: LUX sensor failed\r\n");
-        return POWER_ERROR_PERIPHERAL_CONFIG;
-    }
-
-    if (TMP117_GetTemperatureData(&tmp) != 0) {
-        DebugPrint("Health Check: Temperature sensor failed\r\n");
         return POWER_ERROR_PERIPHERAL_CONFIG;
     }
 

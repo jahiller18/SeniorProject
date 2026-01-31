@@ -70,7 +70,7 @@ HAL_StatusTypeDef I2C_LockAndReadRegister8Bit(I2C_HandleTypeDef *hi2c, uint8_t d
 	return HAL_ERROR;
 }
 
-HAL_StatusTypeDef I2C_LockAndWriteRegister8it(I2C_HandleTypeDef *hi2c, uint8_t devAddr, uint8_t register_pointer, uint16_t register_value) {
+HAL_StatusTypeDef I2C_LockAndWriteRegister8Bit(I2C_HandleTypeDef *hi2c, uint8_t devAddr, uint8_t register_pointer, uint8_t register_value) {
 	SemaphoreHandle_t mutex = getMutexForHandle_I2C(hi2c);
 	if (!mutex) return HAL_ERROR;
 	uint8_t data[2];

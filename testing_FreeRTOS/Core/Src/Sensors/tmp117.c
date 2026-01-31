@@ -39,6 +39,9 @@ uint8_t TMP117_Initialization(TMP117 *dev, I2C_HandleTypeDef *i2cHandle) {
 	// Store I2C handle with TMP117 device typedef
 	dev->i2cHandle = i2cHandle;
 
+	// Set 7-bit I2C Address
+	dev->i2cAddress = TMP117_I2C_ADDR_GND << 1;
+
 	// Initialize Configuration Structs to hold Configuration Data
 	// Updtae Bit Fields with Reset Values
 
@@ -60,13 +63,13 @@ uint8_t TMP117_Initialization(TMP117 *dev, I2C_HandleTypeDef *i2cHandle) {
 	uint8_t buffer[2];
 
 	// Check Connnection and that Device is ready
-	status = HAL_I2C_IsDeviceReady(dev->i2cHandle, TMP117_I2C_ADDR_GND << 1, 1, HAL_MAX_DELAY);
+	status = I2C_LockAndIsDeviceReady(dev->i2cHandle, dev->i2cAddress);
 	if (status != HAL_OK) {
 		return 255;
 	}
 
 	// Check Device ID and ensure matches correct value
-	status = TMP117_ReadRegister(dev, TMP117_DEVICE_ID, buffer);
+	status = I2C_LockAndReadRegister16Bit(dev->i2cHandle, dev->i2cAddress, TMP117_DEVICE_ID, buffer);
 	if (status != HAL_OK) {
 		return 225;
 	}
@@ -86,7 +89,7 @@ uint8_t TMP117_Initialization(TMP117 *dev, I2C_HandleTypeDef *i2cHandle) {
 // Functions
 //
 
-uint8_t TMP117_GetTemperatureData(TMP117 *dev) {
+void TMP117_GetTemperatureData(TMP117 *dev) {
 
 	// Variable to hold the temp result register value
 	uint16_t tempResult = 0;
@@ -105,7 +108,10 @@ uint8_t TMP117_GetTemperatureData(TMP117 *dev) {
 	dev->config.reg = pack_config(&dev->config.bits);
 
 	// Update Config Register with One-Shot Mode
-	status = TMP117_WriteRegister(dev, TMP117_CONFIGURATION, dev->config.reg);
+	status = I2C_LockAndWriteRegister16Bit(dev->i2cHandle, dev->i2cAddress, TMP117_CONFIGURATION, dev->config.reg);
+	if (status != HAL_OK) {
+		return 255;
+	}
 
 	// Wait for Conversion to be done
 	// Check Data ready flag in Configuration Register
@@ -116,7 +122,10 @@ uint8_t TMP117_GetTemperatureData(TMP117 *dev) {
 		HAL_Delay(16);
 
 		// Check new value of Configuration Register
-		status = TMP117_ReadRegister(dev, TMP117_CONFIGURATION, buffer);
+		status = I2C_LockAndReadRegister16Bit(dev->i2cHandle, dev->i2cAddress, TMP117_CONFIGURATION, buffer);
+		if (status != HAL_OK) {
+			return 255;
+		}
 		data = (buffer[0] << 8) | buffer[0];
 
 
@@ -126,7 +135,10 @@ uint8_t TMP117_GetTemperatureData(TMP117 *dev) {
 	// Once Temp Result Register is read, the Data Ready Flag will flip back to 0
 
 	// Get register value
-	status = TMP117_ReadRegister(dev, TMP117_TEMP_RESULT, buffer);
+	status = I2C_LockAndReadRegister16Bit(dev->i2cHandle, dev->i2cAddress, TMP117_TEMP_RESULT, buffer);
+	if (status != HAL_OK) {
+		return 255;
+	}
 
 	// Store Register Value in tempResult
 	tempResult = (buffer[0] << 8) + buffer[1];
@@ -134,8 +146,6 @@ uint8_t TMP117_GetTemperatureData(TMP117 *dev) {
 	// Convert to celcius
 	uint16_t cel_temp_value = TMP117_TwosCompToInt(tempResult);
 	dev->temp_Celcius = cel_temp_value * TMP117_RESOLUTION;
-
-	return 0;
 
 }
 
@@ -162,27 +172,6 @@ uint16_t TMP117_TwosCompToInt(uint16_t temp) {
 // Configuration
 //
 
-uint8_t TMP117_GetConfiguration(TMP117 *dev) {
-
-	// Init status and data buffer
-	HAL_StatusTypeDef status;
-	uint8_t dataBuffer[2];
-
-	// Get configuration data
-	status = TMP117_Readregister(dev, TMP117_CONFIGURATION, &dataBuffer);
-	if ( status != HAL_OK ) {
-		return 255;
-	}
-
-	// Shift data
-	uint16_t config = (dataBuffer[0] << 8) + dataBuffer[1];
-
-
-	// Update Configuration Data in dev typedef
-	//dev->config.REG_0x01.byte = config;
-
-	return 0;
-}
 
 uint8_t TMP117_SetConfiguration(TMP117 *dev) {
 
@@ -198,45 +187,10 @@ uint8_t TMP117_SetConfiguration(TMP117 *dev) {
 	//dataBuffer[0] = (config >> 8);
 
 	// Update Sensor Configs
-	status = TMP117_WriteRegister(dev, TMP117_CONFIGURATION, &dataBuffer);
+	status = I2C_LockAndReadRegister16Bit(dev->i2cHandle, dev->i2cAddress, TMP117_CONFIGURATION, &dataBuffer);
 	if ( status != HAL_OK ) {
 		return 255;
 	}
 
 	return 0;
-}
-
-//
-// Low Level Functions
-//
-
-HAL_StatusTypeDef TMP117_ReadRegister(TMP117 *dev, uint8_t register_pointer, uint8_t* receive_buffer) {
-
-	// Define a status variable to check that transmission was successful
-	HAL_StatusTypeDef status;
-	uint8_t buffer[2];
-
-	// Set the register pointer to the register wanted to be read
-	status = HAL_I2C_Master_Transmit(dev->i2cHandle, TMP117_I2C_ADDR_GND << 1, &register_pointer, 1, HAL_MAX_DELAY);
-
-		// Confirm no issues with transmission
-		if ( status != HAL_OK) {
-			return status;
-		}
-
-		// Receive the 2 x 8bit data into the receive buffer
-		return HAL_I2C_Master_Receive(dev->i2cHandle, TMP117_I2C_ADDR_GND << 1, receive_buffer, 2, 100);
-
-
-
-}
-HAL_StatusTypeDef TMP117_WriteRegister(TMP117 *dev, uint8_t register_pointer, uint16_t register_value) {
-
-	uint8_t data[3];
-
-	data[0] = register_pointer;
-	data[1] = register_value >> 8;
-	data[2] = register_value;
-
-	return HAL_I2C_Master_Transmit(dev->i2cHandle, TMP117_I2C_ADDR_GND << 1, data, 3, 100);
 }

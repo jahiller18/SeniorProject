@@ -17,18 +17,18 @@
 //
 
 uint16_t pack_config_A(config_bits_A_t *b) {
-	return  ((b->QUAKE        & 0x1) << QUAKE_SHIFT)           |
-	        ((b->ZERO         & 0x1) << ZERO_SHIFT)            |
-	        ((b->RANGE        & 0xF) << RANGE_SHIFT)           |
+	return  ((b->QUAKE        & 0x1) << QUAKE_SHIFT)              |
+	        ((b->ZERO         & 0x1) << ZERO_SHIFT)               |
+	        ((b->RANGE        & 0xF) << RANGE_SHIFT)              |
 	        ((b->CONVERSION_TIME & 0xF) << CONVERSION_TIME_SHIFT) |
 	        ((b->OPERATING_MODE  & 0x3) << OPERATING_MODE_SHIFT)  |
-	        ((b->LATCH        & 0x1) << LATCH_SHIFT)           |
-	        ((b->INT_POL      & 0x1) << INT_POL_SHIFT)         |
+	        ((b->LATCH        & 0x1) << LATCH_SHIFT)              |
+	        ((b->INT_POL      & 0x1) << INT_POL_SHIFT)            |
 	        ((b->FAULT_COUNT  & 0x3) << FAULT_COUNT_SHIFT);
 }
 
 uint16_t pack_config_B(config_bits_B_t *b) {
-	return ((b->HIGH             & 0x1FF) << HIGH_SHIFT)         |
+	return ((b->HIGH             & 0x1FF) << HIGH_SHIFT)             |
 	       ((b->THRESHOLD_CH_SEL & 0x3)   << THRESHOLD_CH_SEL_SHIFT) |
 	       ((b->INT_DIR          & 0x1)   << INT_DIR_SHIFT)          |
 	       ((b->INT_CFG          & 0x3)   << INT_CFG_SHIFT)          |
@@ -108,11 +108,6 @@ uint8_t OPT4048_Init(OPT4048 *dev, I2C_HandleTypeDef *i2cHandle) {
 //
 // Functions
 //
-
-uint8_t OPT4048_GetConfiguration(OPT4048 *dev) {
-
-	return 0;
-}
 
 uint8_t OPT4048_UpdateConfig(OPT4048 *dev) {
 

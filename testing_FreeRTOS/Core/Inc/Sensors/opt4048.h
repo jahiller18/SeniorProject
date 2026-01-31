@@ -96,7 +96,7 @@
 #define OPT4048_REG_STATUS					0x0C	// Status Register
 
 //
-// Field Descriptions
+// Device ID Register
 //
 
 #define OPT4080_REG_DIDL					0x11	// 2-bit, 13-12, device ID low, value of 8h
@@ -110,10 +110,6 @@
 #define OPT4048_FLAG_H						0x02	// Flag High - measurement larger then threshold
 #define OPT4048_FLAG_CONVERSION_READY		0x04	// Converison Ready
 #define OPT4048_FLAG_OVERLOAD				0x08	// Overflow condition
-
-//
-// Configuration Register 0x0A
-//
 
 //
 // Bit Position Constants
@@ -134,6 +130,10 @@
 #define INT_CFG_SHIFT          2
 #define ZERO_SHIFT             1
 #define I2C_BURST_SHIFT        0
+
+//
+// Configuration Register 0x0A
+//
 
 /*
  * @brief Configuration Struct for register 0x0A
@@ -169,7 +169,7 @@ typedef struct {
 // Pack_Config_Function
 //
 
-uint16_t pack_config(config_bits_A_t *b);
+uint16_t pack_config_A(config_bits_A_t *b);
 
 //
 // Configuration Register 0x0B
@@ -195,6 +195,9 @@ typedef struct {
 
 uint16_t pack_config_B(config_bits_B_t *b);
 
+//
+// Configuration Struct
+//
 
 typedef struct {
 	// Configuration Register A
@@ -307,22 +310,6 @@ typedef enum {
 } opt4048_int_cfg_t;
 
 //
-// Channel Results Struct
-//
-
-/*
- * @brief Stores the raw data from a specific channel
- *
- * Store the raw data from the different sensor channels
- */
-
-typedef struct {
-	// RAW_ADC_CODES_VALUE
-	uint32_t result;
-
-} opt4048_channel_t;
-
-//
 // OPT4048 Struct
 //
 
@@ -337,21 +324,16 @@ typedef struct {
 
 	double lux;
 
-	opt4048_channel_t CH0;
+	// Raw Data Values for each Channel
 
-	opt4048_channel_t CH1;
+	uint32_t CH0;
 
-	opt4048_channel_t CH2;
+	uint32_t CH1;
 
-	opt4048_channel_t CH3;
+	uint32_t CH2;
+
+	uint32_t CH3;
 } OPT4048;
-
-
-//
-// Functions
-//
-
-
 
 //
 // Initialization
@@ -359,58 +341,18 @@ typedef struct {
 
 uint8_t OPT4048_Init(OPT4048 *dev, I2C_HandleTypeDef *i2cHandle);
 
-uint8_t OPT4048_GetConfiguration(OPT4048 *dev);
+//
+// Configurations
+//
 
 uint8_t OPT4048_UpdateConfig(OPT4048 *dev);
+
+//
+// Functions
+//
 
 uint8_t OPT4048_GetCIE(OPT4048 *dev);
 
 uint8_t OPT4048_GetMeasurement(OPT4048 *dev);
 
-
-
-
-//
-// Low Level Functions
-//
-
-/*
- * @brief Read data from OPT4048 register without the use of DMA
- * @param dev pointer to the OPT4048 structure that contains the pointer to the I2C_Handle
- * 				TypeDef
- * @param register_pointer pointer to the OPT4048 register that is wanted to be read
- * @param data buffer to receive the data stored the in OPT4048 register
- * @retval HAL_Status
- */
-HAL_StatusTypeDef OPT4048_Read_Register(OPT4048 *opt, uint8_t register_pointer, uint8_t* receive_buffer);
-
-/*
- * @brief Read data from OPT4048 register with the use of DMA
- * @param dev pointer to the OPT4048 structure that contains the pointer to the I2C_Handle
- * 				TypeDef
- * @param register_pointer pointer to the OPT4048 register that is wanted to be read
- * @param data buffer to receive the data stored the in OPT4048 register
- * @retval HAL_Status
- */
-HAL_StatusTypeDef OPT4048_Read_Register_DMA(OPT4048 *dev, uint8_t register_pointer, uint8_t* receive_buffer);
-
-/*
- * @brief Write data to a OPT4048 register without the use of DMA
- * @param dev pointer to the OPT4048 structure that contains the pointer to the I2C_Handle
- * 				TypeDef
- * @param register_pointer pointer to the OPT4048 register that is wanted to be written to
- * @param buffer holds the data to be written to the OPT4048 register
- * @retval HAL_Status
- */
-HAL_StatusTypeDef OPT4048_Write_Register(OPT4048 *opt, uint8_t register_pointer, uint16_t register_value);
-
-/*
- * @brief Write data to a OPT4048 register with the use of DMA
- * @param dev pointer to the OPT4048 structure that contains the pointer to the I2C_Handle
- * 				TypeDef
- * @param register_pointer pointer to the OPT4048 register that is wanted to be written to
- * @param buffer holds the data to be written to the OPT4048 register
- * @retval HAL_Status
- */
-HAL_StatusTypeDef OPT4048_Write_Register_DMA(OPT4048 *dev, uint8_t register_pointer, uint8_t* buffer);
 #endif /* INC_OPT4048_H_ */

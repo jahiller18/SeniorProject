@@ -10,6 +10,8 @@
 
 // Includes
 #include "stm32h7xx_hal.h"
+#include "i2c_manager.h"
+
 #include <stdint.h>
 
 //
@@ -78,22 +80,22 @@
 #define TMP117_ZERO_POS                 0
 
 //
-// Configuration Structs
+// Configuration Struct
 //
 
 typedef struct {
-	uint8_t HIGH_ALERT;				// Bit 15-15 High Alert Flag, Set when conversion result is higher than high limit
-	uint8_t LOW_ALERT1;				// Bit 14-14 Low Alert Flag, Set when conversion result is lower than low limit
-	uint8_t DATA_READY;				// Bit 13-13 Data Ready Flag, Set when conversion is complete and temperature register can be read
-	uint8_t EEPROM_BUSY;			// Bit 12-12 EEPROM Busy Flag, Set when EPPROM is busy during programming or power-up
-	uint8_t CONVERSION_MODE;		// Bits 11-10 Conversion Mode
-	uint8_t	CONV;					// Bits 9-7 Conversion Cycle Bits
-	uint8_t	CONVERSION_AVG_MODE;	// Bits 6-5 Conversion Averaging Modes, determines number of conversion results that are collected and averaged before updating temperature register
-	uint8_t THERM_ALERT;			// Bit 4-4 Therm/Alert Mode Select
-	uint8_t ALERT_POL;				// Bit 3-3 Alert Pin Polarity
-	uint8_t DR_ALERT;				// Bit 2-2 Alert Pin Select
-	uint8_t SOFT_RESET;				// Bit 1-1 Software Reset bit
-	uint8_t ZERO;					// Bit 0-0 Zero, (read only)
+	uint8_t HIGH_ALERT : 1;				// Bit 15-15 High Alert Flag, Set when conversion result is higher than high limit
+	uint8_t LOW_ALERT1 : 1;				// Bit 14-14 Low Alert Flag, Set when conversion result is lower than low limit
+	uint8_t DATA_READY : 1;				// Bit 13-13 Data Ready Flag, Set when conversion is complete and temperature register can be read
+	uint8_t EEPROM_BUSY : 1;			// Bit 12-12 EEPROM Busy Flag, Set when EPPROM is busy during programming or power-up
+	uint8_t CONVERSION_MODE : 2;		// Bits 11-10 Conversion Mode
+	uint8_t	CONV : 3;					// Bits 9-7 Conversion Cycle Bits
+	uint8_t	CONVERSION_AVG_MODE : 2;	// Bits 6-5 Conversion Averaging Modes, determines number of conversion results that are collected and averaged before updating temperature register
+	uint8_t THERM_ALERT : 1;			// Bit 4-4 Therm/Alert Mode Select
+	uint8_t ALERT_POL : 1;				// Bit 3-3 Alert Pin Polarity
+	uint8_t DR_ALERT : 1;				// Bit 2-2 Alert Pin Select
+	uint8_t SOFT_RESET : 1;				// Bit 1-1 Software Reset bit
+	uint8_t ZERO : 1;					// Bit 0-0 Zero, (read only)
 } config_bits_t;
 
 typedef struct {
@@ -148,6 +150,8 @@ typedef enum {
 typedef struct {
 	I2C_HandleTypeDef *i2cHandle;
 
+	uint8_t i2cAddress;
+
 	tmp117_configuration_t config;
 
 	float temp_Celcius;
@@ -158,14 +162,13 @@ typedef struct {
 // Functions
 //
 
-uint8_t TMP117_GetTemperatureData(TMP117 *dev);
+void TMP117_GetTemperatureData(TMP117 *dev);
 uint16_t TMP117_TwosCompToInt(uint16_t temp);
 
 //
 // Configuration
 //
 
-uint8_t TMP117_GetConfiguration(TMP117 *dev);
 uint8_t TMP117_SetConfiguration(TMP117 *dev);
 
 //
@@ -177,31 +180,5 @@ uint8_t TMP117_Initialization(TMP117 *dev, I2C_HandleTypeDef *i2cHandle);
 //
 // Pack_Config_Function
 //
-
-//
-// Low Level Functions
-//
-
-/*
- * @brief Read data from TMP117 register without the use of DMA
- * @param dev pointer to the TMP117 structure that contains the pointer to the I2C_Handle
- * 				TypeDef
- * @param register_pointer pointer to the TMP117 register that is wanted to be read
- * @param data buffer to receive the data stored the in TMP117 register
- * @retval HAL_Status
- */
-HAL_StatusTypeDef TMP117_ReadRegister(TMP117 *dev, uint8_t register_pointer, uint8_t* receive_register);
-
-/*
- * @brief Read data from TMP117 register with the use of DMA
- * @param dev pointer to the TMP117 structure that contains the pointer to the I2C_Handle
- * 				TypeDef
- * @param register_pointer pointer to the TMP117 register that is wanted to be read
- * @param data buffer to receive the data stored the in TMP117 register
- * @retval HAL_Status
- */
-HAL_StatusTypeDef TMP117_WriteRegister(TMP117 *dev, uint8_t register_pointer, uint16_t register_value);
-
-
 
 #endif /* INC_TMP117_H_ */
